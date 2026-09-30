@@ -327,6 +327,8 @@ export interface OutputRequirements {
   captions_required: boolean;
   voiceover_required: boolean;
   end_card_required: boolean;
+  /** Written scenes only: false puts no text on the video. */
+  on_screen_text?: boolean;
 }
 
 export interface BriefInput {
@@ -344,6 +346,8 @@ export interface BriefInput {
   output: OutputRequirements;
   /** Scenes written by the person; when present they replace AI planning. */
   scenes?: UserScene[];
+  /** An uploaded logo, placed top right on every written scene. */
+  logo_asset_id?: string | null;
 }
 
 export interface UserScene {

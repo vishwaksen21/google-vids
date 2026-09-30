@@ -58,23 +58,29 @@ def creative_plan(brief_input: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def text_on_video(brief_input: dict[str, Any]) -> bool:
+    return (brief_input.get("output") or {}).get("on_screen_text", True)
+
+
 def script(brief_input: dict[str, Any], campaign_brief: dict[str, Any]) -> dict[str, Any]:
+    show = text_on_video(brief_input)  # False: no text at all on the video, disclosures included
     supers = [{"id": f"sup{i + 1}", "beat_id": f"b{i + 1}", "text": shown_text(s["on_screen_text"]),
                "purpose": "on-screen text"}
-              for i, s in enumerate(brief_input["scenes"]) if s.get("on_screen_text")]
+              for i, s in enumerate(brief_input["scenes"]) if show and s.get("on_screen_text")]
     return {
         "authored": True,
         "lines": [],  # nothing is spoken by a voiceover; speech, if any, is in a scene's own prompt
         "supers": supers,
         "cta_line_id": "",
         "cta_required": bool(brief_input.get("cta")),
-        "disclosure_texts": [d["text"] for d in campaign_brief.get("disclosures", [])],
+        "disclosure_texts": [d["text"] for d in campaign_brief.get("disclosures", [])] if show else [],
         "estimated_speech_seconds": 0.0,
     }
 
 
 def scene_plan(brief_input: dict[str, Any]) -> dict[str, Any]:
     scenes = []
+    show = text_on_video(brief_input)
     for i, s in enumerate(brief_input["scenes"]):
         scenes.append({
             "scene_key": _key(i), "order": i + 1, "beat_id": f"b{i + 1}",
@@ -82,7 +88,7 @@ def scene_plan(brief_input: dict[str, Any]) -> dict[str, Any]:
             "duration_seconds": float(s["duration_seconds"]),
             "visual_description": s["prompt"], "camera_direction": "", "lighting": "",
             "character_ids": [], "location_id": "loc1", "line_ids": [],
-            "super_ids": [f"sup{i + 1}"] if s.get("on_screen_text") else [],
+            "super_ids": [f"sup{i + 1}"] if show and s.get("on_screen_text") else [],
             "transition_out": "CUT", "depends_on": [],
             "validation_criteria": ["The clip shows what the scene's prompt describes."],
         })
@@ -108,7 +114,7 @@ def validate(brief_input: dict[str, Any], *, limits: ClipLimits, settings: Setti
     scenes = brief_input["scenes"]
     out = brief_input.get("output") or {}
     last = scenes[-1]["duration_seconds"] if scenes else 0
-    for text in disclosures or []:  # shown on the last scene, for that whole scene
+    for text in (disclosures or []) if text_on_video(brief_input) else []:  # shown on the last scene, for that whole scene
         need = max(settings.min_super_seconds, len(text.split()) / settings.reading_words_per_second)
         if last + 1e-6 < need:
             r.append(failed("plan.disclosure_time", C.BRAND_POLICY, Severity.BLOCKER,

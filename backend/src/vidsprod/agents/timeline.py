@@ -32,6 +32,11 @@ CAPABILITY_FOR = {
 }
 
 
+# The uploaded-logo recipe is an image placed top right (verified image upload + layout),
+# not the unverified end-card logo that CAPABILITY_FOR maps LOGO to.
+LOGO_CAPABILITY = "timeline.image"
+
+
 def scene_windows(state: TimelineState) -> dict[str, tuple[float, float]]:
     windows, t = {}, 0.0
     for item in sorted(state.items, key=lambda i: i.position):
@@ -45,7 +50,7 @@ def reading_time(text: str, settings: Settings) -> float:
 
 
 def plan_edits(*, scene_plan: dict, script: dict, brief: dict, profile: dict,
-               state: TimelineState, settings: Settings) -> list[dict[str, Any]]:
+               state: TimelineState, settings: Settings, logo_path: str | None = None) -> list[dict[str, Any]]:
     windows = scene_windows(state)
     total = max((end for _, end in windows.values()), default=0.0)
     scenes = scene_plan["scenes"]
@@ -54,9 +59,10 @@ def plan_edits(*, scene_plan: dict, script: dict, brief: dict, profile: dict,
     ops: list[dict[str, Any]] = []
 
     def add(kind: TimelineOpKind, params: dict, affects: list[str], required: bool,
-            severity: Severity = Severity.MAJOR) -> None:
+            severity: Severity = Severity.MAJOR, capability: str | None = None) -> None:
         ops.append({"kind": kind.value, "params": params, "affects_scenes": affects,
-                    "required": required, "severity": severity.value})
+                    "required": required, "severity": severity.value,
+                    **({"capability": capability} if capability else {})})
 
     # Scenes written by a person (planning/authored.py): a scene's text is on screen for the
     # whole scene, as a Vids text box is, and scenes join with the default cut.
@@ -101,6 +107,13 @@ def plan_edits(*, scene_plan: dict, script: dict, brief: dict, profile: dict,
             {"text": text, "start": round(s0, 2), "end": round(total, 2), "position": "upper",
              "role": "disclosure", "disclosure_index": index, **extra},
             [k for k, (a, b) in windows.items() if b > s0], required=True, severity=Severity.BLOCKER)
+    if logo_path:  # the uploaded logo, top right, for each whole scene
+        for scene in scenes:
+            key = scene["scene_key"]
+            a, b = windows.get(key, (0.0, 0.0))
+            add(TimelineOpKind.LOGO, {"asset_path": logo_path, "position": "top-right",
+                                      "start": round(a, 2), "end": round(b, 2), "scene_key": key},
+                [key], required=True, capability=LOGO_CAPABILITY)
     if brief["output"].get("end_card_required", True) and scenes:
         last = scenes[-1]["scene_key"]
         a, b = windows.get(last, (0.0, total))

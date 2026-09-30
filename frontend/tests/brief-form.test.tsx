@@ -80,6 +80,9 @@ describe("BriefForm", () => {
     await userEvent.type(screen.getByLabelText("Brief"), "Two scenes for Prudential Health India.");
     await userEvent.click(screen.getByRole("button", { name: "Add a scene" }));
     await userEvent.type(screen.getByLabelText("Scene 1: what Google Vids should show"), "A calm sunlit family kitchen, slow push in.");
+    expect(screen.getByLabelText("Show text on the video")).not.toBeChecked();  // no text unless asked for
+    expect(screen.queryByLabelText(/Scene 1: words on screen/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByLabelText("Show text on the video"));
     await userEvent.type(screen.getByLabelText(/Scene 1: words on screen/), "Health insurance is about more than medical bills.");
     await userEvent.selectOptions(screen.getByLabelText("Scene 1: length"), "10");
     expect(screen.getByText(/Captions, voiceover and the end card are switched off/)).toBeInTheDocument();
@@ -89,7 +92,8 @@ describe("BriefForm", () => {
     expect(brief.scenes).toEqual([
       { prompt: "A calm sunlit family kitchen, slow push in.", on_screen_text: "Health insurance is about more than medical bills.", duration_seconds: 10, photo_asset_id: null },
     ]);
-    expect(brief.output).toMatchObject({ captions_required: false, voiceover_required: false, end_card_required: false });
+    expect(brief.output).toMatchObject({ captions_required: false, voiceover_required: false, end_card_required: false, on_screen_text: true });
+    expect(brief.logo_asset_id).toBeNull();
   });
 
   it("does not submit a scene without a description", async () => {

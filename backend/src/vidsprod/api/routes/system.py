@@ -306,6 +306,19 @@ async def browser_diagnose(c: ContainerDep, actor: ActorDep) -> dict[str, Any]:
     return report
 
 
+@router.post("/browser/release-clip")
+async def browser_release_clip(c: ContainerDep, actor: ActorDep) -> dict[str, Any]:
+    """A person confirmed the pending generated clip is in the Vid (or accepts it is lost), so
+    productions may use the browser again."""
+    browser = _browser(c)
+    clip = browser.unsaved_clip
+    browser.release_unsaved_clip()
+    async with c.db.transaction() as session:
+        await audit.record(session, type="browser.clip_released", actor=actor,
+                           message="pending generated clip released by a person", data={"clip": clip})
+    return {"released": clip}
+
+
 @router.post("/browser/close")
 async def browser_close(c: ContainerDep, actor: ActorDep) -> dict[str, Any]:
     browser = _browser(c)

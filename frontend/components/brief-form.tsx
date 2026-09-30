@@ -157,6 +157,28 @@ export function BriefForm({
     }
   };
 
+  const uploadLogo = async (files: FileList | null) => {
+    const file = files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    const problem = checkReferenceFile(file, 0);
+    if (problem) {
+      setUploadError(`${file.name}: ${problem}`);
+      return;
+    }
+    setUploading((n) => n + 1);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const ref = await apiRequest<ReferenceImage>("references", { method: "POST", body: form });
+      setF((s) => ({ ...s, logo: ref }));
+    } catch (e) {
+      setUploadError(`${file.name}: ${errorMessage(e)}`);
+    } finally {
+      setUploading((n) => n - 1);
+    }
+  };
+
   const errorCount = Object.keys(errors).length;
 
   return (
@@ -244,6 +266,34 @@ export function BriefForm({
         </label>
       </Fieldset>
 
+      <Fieldset legend="Logo" description="Optional. Upload your logo and it is placed in the top-right corner of every written scene.">
+        {f.logo ? (
+          <div className="flex items-center gap-4 rounded-lg border border-gray-200 p-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={artifactContentUrl(f.logo.id)} alt="Logo" className="h-14 w-auto max-w-[180px] rounded bg-gray-50 object-contain" />
+            <span className="min-w-0 flex-1 truncate text-[14px] text-ink">{f.logo.name}</span>
+            <Button size="sm" variant="tertiary" onClick={() => set("logo", null)} icon={<Trash2 aria-hidden className="size-4" />}>
+              Remove<span className="visually-hidden"> logo</span>
+            </Button>
+          </div>
+        ) : (
+          <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md border border-dashed border-gray-400 px-4 text-[14px] font-medium text-ink hover:border-red hover:text-red-dark">
+            <ImagePlus aria-hidden className="size-4" />
+            {uploading ? "Uploading…" : "Add a logo"}
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              className="visually-hidden"
+              onChange={(e) => {
+                void uploadLogo(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        )}
+        <p className="text-[13px] text-gray">A PNG with a transparent background looks best. It is shown about 260 px wide on a 1920 × 1080 video.</p>
+      </Fieldset>
+
       <Fieldset
         legend="Your scenes"
         description="Optional. Write each scene yourself and it is used word for word, with no AI planning. Each scene is one Google Vids clip of 3 to 10 seconds."
@@ -289,6 +339,7 @@ export function BriefForm({
                     : "For example: A calm sunlit family kitchen, slow push in, natural morning light."
                 }
               />
+              {f.on_screen_text ? (
               <TextArea
                 label={`Scene ${i + 1}: words on screen`}
                 optional
@@ -299,6 +350,7 @@ export function BriefForm({
                 onChange={(e) => update({ on_screen_text: e.target.value })}
                 hint="Shown beside the clip for the whole scene."
               />
+              ) : null}
               <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField
                   label={`Scene ${i + 1}: length`}
@@ -339,7 +391,10 @@ export function BriefForm({
               ...s,
               scenes: [...s.scenes, emptyScene()],
               // Google Vids cannot add these automatically yet; a written-scene production needs them off.
-              ...(s.scenes.length === 0 ? { captions_required: false, voiceover_required: false, end_card_required: false } : {}),
+              // Text on the video starts off too; switch it on below to show words and the disclosure.
+              ...(s.scenes.length === 0
+                ? { captions_required: false, voiceover_required: false, end_card_required: false, on_screen_text: false }
+                : {}),
             }))
           }
           icon={<Plus aria-hidden className="size-4" />}
@@ -347,9 +402,21 @@ export function BriefForm({
           Add a scene
         </Button>
         {f.scenes.length ? (
+          <Checkbox
+            label="Show text on the video"
+            hint={
+              f.on_screen_text
+                ? "Each scene's words are shown beside its clip, and the brand's standard disclosure on the last scene."
+                : "No text at all on the video: no scene words and no brand disclosure."
+            }
+            checked={f.on_screen_text}
+            onChange={(e) => set("on_screen_text", e.target.checked)}
+          />
+        ) : null}
+        {f.scenes.length ? (
           <Notice tone="info">
             Captions, voiceover and the end card are switched off for written scenes: Google Vids cannot add them automatically yet.
-            {disclosureNeed ? (
+            {f.on_screen_text && disclosureNeed ? (
               <>
                 {" "}
                 Your brand&apos;s standard disclosure is shown on the last scene and needs {Math.ceil(disclosureNeed)} seconds, so make the last scene at

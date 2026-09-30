@@ -107,6 +107,8 @@ def _overlap(a: dict[str, float], b: dict[str, float]) -> float:
 REQUIRED_MODEL = ("Omni", "720p")  # the generation settings the user specified (2026-09-30)
 CANVAS = (1920, 1080)  # Format options pixel space (observed)
 RIGHT_COLUMN_VIDEO = {"w": 1016, "h": 571.5, "x": 872, "y": 254.2}  # 16:9, beside a left text column
+LOGO_WIDTH, LOGO_MARGIN = 260.0, 40.0  # the uploaded logo, top right
+BLANK_SCENE_SECONDS = 5.0  # a new blank scene's length (observed)
 GEOMETRY_FIELDS = {"w": "format.width", "h": "format.height", "x": "format.x", "y": "format.y"}
 
 
@@ -148,11 +150,19 @@ class BrowserVidsAdapter:
         # result exists only in that page, so a reload, navigation or closing the browser loses
         # the clip (the quota is already spent). A person resolves it; the adapter will not.
         self.unsaved_clip: dict[str, Any] | None = None
+        self.lost_clips: list[dict[str, Any]] = []
         self.insert_timeout_s = 30.0
         self.export_attempts = 3
 
     # ------------------------------------------------------------------ gates
     def _guard_unsaved_clip(self, action: str) -> None:
+        if self.unsaved_clip is not None and not self.manager.running:
+            # The page that held it is gone (Chrome closed or crashed): nothing is left to save,
+            # and keeping the flag would block every later production.
+            log.error("a generated clip was lost before it could be confirmed inserted",
+                      extra={"clip": self.unsaved_clip})
+            self.lost_clips.append(self.unsaved_clip)
+            self.unsaved_clip = None
         if self.unsaved_clip is not None:
             raise UnsavedClipError(
                 f"refusing to {action}: a generated clip is open in the browser but not inserted; "
@@ -447,12 +457,19 @@ class BrowserVidsAdapter:
             driver = await self._driver(self._evidence(request.scene_key))
             stem = f"{request.scene_key}_t{request.take_no}"
             before = await driver.count("generate.result")
-            if before:  # one Insert button per result: which one is ours would be a guess
-                raise await driver.mismatch(
-                    f"the AI panel already holds {before} result(s); reopen the Vid first",
-                    "generate.result")
+            if before:
+                # Earlier results stay in the AI panel after they are inserted (observed with a
+                # second scene). With several, which 'Insert' is ours would be a guess, so the Vid
+                # is reopened: inserted clips are saved in it, and the panel starts empty.
+                await driver.page.goto(project.url, wait_until="load")
+                await self._dismiss_getting_started(driver)
+                await driver.expect_one("editor.ready", self.settings.browser_action_timeout_ms * 2)
+                before = await driver.count("generate.result")
+                if before:
+                    raise await driver.mismatch(
+                        f"the AI panel still holds {before} result(s) after reopening the Vid", "generate.result")
             # Observed: Insert fills the ACTIVE scene. Make it a blank scene at the end first.
-            timeline_before = await self._prepare_blank_scene(driver, stem)
+            timeline_before = await self._prepare_blank_scene(driver, stem, project_id=project.project_id)
             await self.enter_prompt(driver, request)
             await driver.screenshot(f"{stem}_before_generate")
             submit = await driver.expect_one("generate.submit")
@@ -613,13 +630,30 @@ class BrowserVidsAdapter:
             raise await driver.mismatch("the new scene shows a video", "canvas.video")
         return tl
 
-    async def _prepare_blank_scene(self, driver: PageDriver, stem: str, *, force_new: bool = False) -> dict[str, Any]:
+    async def _last_scene_is_taken(self, driver: PageDriver, tl: dict[str, Any], project_id: str | None) -> bool:
+        """Does the (active) last scene already hold something? Observed 2026-09-30: right
+        after a Vid is reopened its canvas video is not drawn yet, so 'no visible video' alone
+        read a filled scene as blank. So: a clip recorded there, a length other than a blank
+        scene's 5.0 s, or a video that appears within a few seconds."""
+        last = len(tl["scenes"]) - 1
+        if project_id and str(last) in self._scene_map(project_id):
+            return True
+        if tl["durations"] and tl["durations"][last] not in (None, BLANK_SCENE_SECONDS):
+            return True
+        for _ in range(6):
+            if await self._active_scene_has_video(driver):
+                return True
+            await asyncio.sleep(0.5)
+        return False
+
+    async def _prepare_blank_scene(self, driver: PageDriver, stem: str, *, force_new: bool = False,
+                                   project_id: str | None = None) -> dict[str, Any]:
         """Make the LAST scene the active one and ensure it holds no video, adding a blank
         scene after it when it does. Observed: a new Vid has one blank 5.0 s scene; an empty
         Vid has none (then AI video is disabled); a reopened Vid starts on scene 1. Returns
         the verified timeline."""
         tl = await self._select_last_scene(driver)
-        if force_new or await self._active_scene_has_video(driver):
+        if force_new or await self._last_scene_is_taken(driver, tl, project_id):
             tl = await self._append_blank_scene(driver)
         await driver.screenshot(f"{stem}_blank_scene_ready")
         driver._record("prepare scene", "active last scene without video",
@@ -633,39 +667,51 @@ class BrowserVidsAdapter:
         self._require("timeline.add_scene")
         async with self.manager.lock:
             driver = await self._driver(self._evidence("scenes"))
-            return await self._prepare_blank_scene(driver, "prepare", force_new=force_new)
+            return await self._prepare_blank_scene(driver, "prepare", force_new=force_new,
+                                                   project_id=project.project_id)
 
     async def _insert_latest(self, driver: PageDriver, card: Any, before: dict[str, Any],
                              stem: str) -> dict[str, Any]:
-        """Insert the new result, then prove it. Observed 2026-09-30: Insert fills the active
-        (blank) scene, which takes the clip's length: same scene count, that scene's duration
-        becomes the clip's (5.0 → 6.0), the total changes by the same amount, and a visible
-        canvas <video> has the result's duration."""
+        """Insert the new result, then prove it. Two observed outcomes (2026-09-30):
+        * the active scene is blank: Insert fills it, and it takes the clip's length;
+        * the active scene holds a clip: Vids shows a preview with 'Insert in new scene',
+          which adds the clip as a new scene after it.
+        Proof either way: that scene is the clip's length, the total changed by the same, and a
+        visible canvas <video> has the result's duration."""
         clip_seconds = await self._result_seconds(card)
         index, old = before["active"], before["durations"][before["active"]]
         driver.irreversible_done = True
         await driver.click("generate.result.insert")
+        new_scene = False
+        for _ in range(8):  # the preview offering a new scene appears within a moment, or not at all
+            if "generate.insert_new_scene" in driver.catalogue.locators and await driver.locator("generate.insert_new_scene").first.is_visible():
+                await driver.click("generate.insert_new_scene")
+                new_scene = True
+                break
+            await asyncio.sleep(0.4)
         loop = asyncio.get_running_loop()
         deadline, after, on_canvas = loop.time() + self.insert_timeout_s, before, None
+        target = index + 1 if new_scene else index
+        want_total = before["total_seconds"] - (0 if new_scene else old)  # + the new scene's length
         while loop.time() < deadline:
             after = await self._timeline_readback(driver)
             videos = driver.locator("canvas.video")
             on_canvas = (float(await videos.first.evaluate("v => v.duration || 0", timeout=5000))
                          if await videos.count() == 1 else None)
-            scene = after["durations"][index] if len(after["durations"]) > index else None
-            if (len(after["scenes"]) == len(before["scenes"]) and after["active"] == index
-                    and scene is not None and abs(scene - clip_seconds) <= 0.6
-                    and abs(after["total_seconds"] - (before["total_seconds"] - old + scene)) <= 0.2
+            scene = after["durations"][target] if len(after["durations"]) > target else None
+            count_ok = len(after["scenes"]) == len(before["scenes"]) + (1 if new_scene else 0)
+            if (count_ok and after["active"] == target and scene is not None and abs(scene - clip_seconds) <= 0.6
+                    and abs(after["total_seconds"] - (want_total + scene)) <= 0.2
                     and on_canvas is not None and abs(on_canvas - clip_seconds) <= 0.1):
                 await driver.screenshot(f"{stem}_inserted")
-                driver._record("insert", f"scene {index + 1} = {clip_seconds:.2f}s clip",
-                               f"scene {index + 1} {scene:.1f}s, canvas video {on_canvas:.2f}s, "
-                               f"total {after['total_seconds']:.1f}s", True)
+                driver._record("insert", f"scene {target + 1} = {clip_seconds:.2f}s clip",
+                               f"scene {target + 1} {scene:.1f}s ({'new scene' if new_scene else 'filled'}), "
+                               f"canvas video {on_canvas:.2f}s, total {after['total_seconds']:.1f}s", True)
                 return {**after, "clip_seconds": clip_seconds, "canvas_video_seconds": on_canvas}
             await asyncio.sleep(1)
         raise await driver.mismatch(
             f"after Insert the timeline reads {after}, canvas video {on_canvas}; expected scene "
-            f"{index + 1} to hold the {clip_seconds:.2f}s clip", "generate.result.insert")
+            f"{target + 1} to hold the {clip_seconds:.2f}s clip", "generate.result.insert")
 
     async def regenerate_scene(self, project: ProjectHandle, request: ClipRequest) -> ClipCandidate:
         """Only the defective scene, with its revised prompt: a new generation, new take."""
@@ -879,13 +925,17 @@ class BrowserVidsAdapter:
             if any(d is None for d in tl["durations"]):
                 raise await driver.mismatch(f"a scene duration could not be read: {tl}", "timeline.scene_duration")
             # Each scene's text boxes, read from its canvas (a box shows for its whole scene).
-            overlays, start = [], 0.0
+            overlays, logos, start = [], [], 0.0
             for i, d in enumerate(tl["durations"]):
+                window = {"position_index": i, "start": round(start, 2), "end": round(start + d, 2)}
                 if self.capabilities.is_verified("timeline.text_overlay"):
                     await self._select_scene(driver, i)
                     for text in await self._scene_boxes(driver):
-                        overlays.append({"text": text, "position_index": i, "start": round(start, 2),
-                                         "end": round(start + d, 2)})
+                        overlays.append({"text": text, **window})
+                if self.capabilities.is_verified("timeline.image"):
+                    await self._select_scene(driver, i)
+                    if await self._corner_images(driver):
+                        logos.append({"position": "top-right", **window})
                 start += d
         mapping = self._scene_map(project.project_id)
         items = []
@@ -894,9 +944,10 @@ class BrowserVidsAdapter:
             items.append(TimelineItem(item_id=f"{project.project_id}:scene:{i + 1}", clip_id=entry.get("clip_id", ""),
                                       scene_key=entry.get("scene_key", f"unplanned-{i + 1}"), position=i,
                                       duration_seconds=d))
-        for o in overlays:
+        for o in [*overlays, *logos]:
             o["scene_key"] = items[o.pop("position_index")].scene_key
-        return TimelineState(items=items, text_overlays=overlays, total_duration_seconds=tl["total_seconds"])
+        return TimelineState(items=items, text_overlays=overlays, logos=logos,
+                             total_duration_seconds=tl["total_seconds"])
 
     async def add_text_overlay(self, project: ProjectHandle, text: str, *,
                                scene_index: int | None = None, kind: str = "title",
@@ -1027,7 +1078,7 @@ class BrowserVidsAdapter:
         return geo
 
     async def insert_image(self, project: ProjectHandle, path: Path, *, scene_index: int | None = None,
-                           align: str = "right", margin: float = 32) -> dict[str, float]:
+                           align: str = "right", margin: float = 32, corner_width: float | None = None) -> dict[str, float]:
         """Upload a still image into a scene and place it, no generation.
 
         Observed 2026-09-30: Insert → Upload opens a file chooser; the image lands on the
@@ -1063,8 +1114,13 @@ class BrowserVidsAdapter:
             if after["durations"] != tl["durations"]:
                 raise await driver.mismatch(f"the timeline changed: {tl} → {after}", "timeline.scene")
             size = await self._read_geometry(driver)
-            x = CANVAS[0] - margin - size["w"] if align == "right" else margin
-            geo = await self._set_geometry(driver, x=round(x, 1), y=round((CANVAS[1] - size["h"]) / 2, 1))
+            if corner_width:  # a logo: small, top right, its own proportions kept
+                h = round(corner_width * size["h"] / size["w"], 1)
+                geo = await self._set_geometry(driver, w=corner_width, h=h,
+                                               x=round(CANVAS[0] - margin - corner_width, 1), y=margin)
+            else:
+                x = CANVAS[0] - margin - size["w"] if align == "right" else margin
+                geo = await self._set_geometry(driver, x=round(x, 1), y=round((CANVAS[1] - size["h"]) / 2, 1))
             await driver.screenshot(f"image_placed_{path.stem[:20]}")
             driver._record("insert image", path.name, str(geo), True)
         return geo
@@ -1100,6 +1156,9 @@ class BrowserVidsAdapter:
             TimelineOpKind.VOICEOVER: "timeline.voiceover", TimelineOpKind.MUSIC: "timeline.music",
             TimelineOpKind.CAPTIONS: "timeline.captions",
         }[op.kind]
+        if op.kind is TimelineOpKind.LOGO and op.params.get("asset_path"):
+            self._require("timeline.image")  # the uploaded logo is an image placed top right
+            return await self._apply_logo(project, op.params)
         self._require(capability)
         if op.kind is TimelineOpKind.TEXT_OVERLAY:
             return await self._apply_text_overlay(project, op.params)
@@ -1147,6 +1206,30 @@ class BrowserVidsAdapter:
             y = CANVAS[1] - geo["h"] - layout["bottom"] if "bottom" in layout else (CANVAS[1] - geo["h"]) / 2
             await self._set_geometry(driver, y=round(y, 1))
             await driver.press_key("Escape")
+
+    async def _apply_logo(self, project: ProjectHandle, params: dict[str, Any]) -> TimelineState:
+        """The uploaded logo in the top-right corner of its scene, 260 px wide, 40 px in from
+        the edges (upload + pixel layout, both verified). Re-applying is safe."""
+        key = params.get("scene_key")
+        position = self.scene_position(project.project_id, key) if key else None
+        if position is None:
+            raise VidsError(f"no scene in the Vid holds {key}; the logo was not added", details={"params": params})
+        path = Path(params["asset_path"])
+        async with self.manager.lock:
+            driver = await self._driver(self._evidence("images"))
+            await self._select_scene(driver, position)
+            present = await self._corner_images(driver)
+        if not present:
+            await self.insert_image(project, path, scene_index=position, margin=LOGO_MARGIN, corner_width=LOGO_WIDTH)
+        return await self.read_timeline(project)
+
+    async def _corner_images(self, driver: PageDriver) -> int:
+        """Images on the active scene's canvas that sit in its top-right corner (a logo)."""
+        return await driver.locator("canvas.image").evaluate_all("""els => els.filter(img => {
+            const svg = img.closest('svg'); if (!svg) return false;
+            const c = svg.getBoundingClientRect(), b = img.getBoundingClientRect();
+            return b.width > 0 && b.width < 0.3 * c.width && b.right > c.right - 0.12 * c.width && b.top < c.top + 0.25 * c.height;
+        }).length""")
 
     async def _select_scene(self, driver: PageDriver, position: int) -> None:
         tl = await self._timeline_readback(driver)

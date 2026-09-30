@@ -85,3 +85,38 @@ async def test_a_last_scene_too_short_for_the_disclosure_stops_before_anything_i
     async with c.db.session() as session:
         from vidsprod.db.models import SceneTake
         assert not (await session.execute(select(SceneTake))).scalars().all(), "nothing was generated"
+
+
+async def test_no_text_on_the_video_means_no_words_and_no_disclosure(container):
+    c = container
+    brief = {**BRIEF, "output": {**BRIEF["output"], "on_screen_text": False},
+             "scenes": [SCENES[0], {**SCENES[1], "duration_seconds": 5}]}  # 5 s is fine without the disclosure
+    campaign = await create_campaign(c, brief=brief, name="No text")
+    job = await c.control.start(campaign.id, actor="producer")
+    await run_to_rest(c)
+    docs = await _docs(c, job.id)
+    assert docs["SCRIPT"]["supers"] == [] and docs["SCRIPT"]["disclosure_texts"] == []
+    await approve_pending(c)
+    await run_to_rest(c)
+    ops = (await _docs(c, job.id))["TIMELINE_PLAN"]["operations"]
+    assert not [o for o in ops if o["kind"] == "TEXT_OVERLAY"], "nothing is written on the video"
+    await approve_pending(c)
+    await run_to_rest(c)
+    assert (await job_row(c, job.id)).status == JobStatus.COMPLETED.value, await dump(c, job.id)
+
+
+def test_an_uploaded_logo_is_placed_top_right_on_every_scene():
+    from vidsprod.agents.timeline import LOGO_CAPABILITY, plan_edits
+    from vidsprod.config import get_settings
+    from vidsprod.planning import authored
+    from vidsprod.vids.port import TimelineItem, TimelineState
+    bi = {**BRIEF, "output": {**BRIEF["output"], "on_screen_text": False}}
+    state = TimelineState(items=[TimelineItem(item_id="a", clip_id="c1", scene_key="S01", position=0, duration_seconds=8),
+                                 TimelineItem(item_id="b", clip_id="c2", scene_key="S02", position=1, duration_seconds=10)])
+    ops = plan_edits(scene_plan=authored.scene_plan(bi), script=authored.script(bi, {"disclosures": []}),
+                     brief={"output": bi["output"]}, profile={}, state=state, settings=get_settings(),
+                     logo_path="/tmp/logo.png")
+    logos = [o for o in ops if o["kind"] == "LOGO"]
+    assert [(o["params"]["scene_key"], o["params"]["start"], o["params"]["end"]) for o in logos] == [
+        ("S01", 0.0, 8.0), ("S02", 8.0, 18.0)]
+    assert all(o["params"]["position"] == "top-right" and o["capability"] == LOGO_CAPABILITY for o in logos)

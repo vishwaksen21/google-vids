@@ -53,6 +53,8 @@ class OutputRequirements(Doc):
     captions_required: bool = True
     voiceover_required: bool = True
     end_card_required: bool = True
+    on_screen_text: bool = Field(
+        default=True, description="Written scenes only: False puts no text on the video (no scene words, no disclosure)")
 
     @field_validator("max_duration_seconds")
     @classmethod
@@ -93,6 +95,8 @@ class BriefInput(Doc):
     scenes: list[UserScene] = Field(
         default_factory=list, max_length=10,
         description="Scenes written by the person. When given, they replace AI planning")
+    logo_asset_id: Ident | None = Field(
+        default=None, description="An uploaded logo image, placed in the top-right corner of every written scene")
 
     @model_validator(mode="after")
     def _scene_photos_are_references(self) -> BriefInput:

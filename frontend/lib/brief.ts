@@ -54,7 +54,9 @@ export interface BriefFormState {
   captions_required: boolean;
   voiceover_required: boolean;
   end_card_required: boolean;
+  on_screen_text: boolean;
   scenes: SceneForm[];
+  logo: ReferenceImage | null;
 }
 
 export function emptyBriefForm(): BriefFormState {
@@ -78,7 +80,9 @@ export function emptyBriefForm(): BriefFormState {
     captions_required: true,
     voiceover_required: true,
     end_card_required: true,
+    on_screen_text: true,
     scenes: [],
+    logo: null,
   };
 }
 
@@ -102,7 +106,9 @@ export function formFromBrief(name: string, brief: Partial<BriefInput> | null | 
     f.captions_required = o.captions_required ?? true;
     f.voiceover_required = o.voiceover_required ?? true;
     f.end_card_required = o.end_card_required ?? true;
+    f.on_screen_text = o.on_screen_text ?? true;
   }
+  f.logo = brief.logo_asset_id ? { id: brief.logo_asset_id, name: "logo", size_bytes: 0 } : null;
   f.scenes = (brief.scenes ?? []).map((sc) => ({
     prompt: sc.prompt,
     on_screen_text: sc.on_screen_text ?? "",
@@ -209,10 +215,12 @@ export function briefPayload(f: BriefFormState): BriefInput {
       captions_required: f.captions_required,
       voiceover_required: f.voiceover_required,
       end_card_required: f.end_card_required,
+      on_screen_text: f.on_screen_text,
     },
+    logo_asset_id: f.logo?.id ?? null,
     scenes: f.scenes.map((sc) => ({
       prompt: sc.prompt.trim(),
-      on_screen_text: orNull(sc.on_screen_text),
+      on_screen_text: f.on_screen_text ? orNull(sc.on_screen_text) : null,
       duration_seconds: sc.duration,
       photo_asset_id: sc.photo_id || null,
     })),

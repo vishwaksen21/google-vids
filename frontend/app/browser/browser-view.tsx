@@ -21,6 +21,12 @@ export function BrowserPage() {
   const connected = !!check && CONNECTED.has(check.state);
   const running = !!b?.browser?.running;
 
+  const release = useAction(async () => {
+    const data = await apiRequest<Record<string, unknown>>("browser/release-clip", { method: "POST" });
+    await status.mutate();
+    return data;
+  });
+
   const act = useAction(async (action: "check" | "close") => {
     const data = await apiRequest<Record<string, unknown>>(`browser/${action}`, { method: "POST" });
     await status.mutate();
@@ -38,6 +44,13 @@ export function BrowserPage() {
             Scene {b.unsaved_clip.scene_key}, take {b.unsaved_clip.take_no} is open in the automation&apos;s Chrome window but could not be confirmed
             in the timeline. Insert it in that window. Do not close Chrome or reload the video: the clip exists only in that page.
           </p>
+          <p className="mt-2 text-gray">
+            Once it is in the timeline (or if that window is already closed and the clip is lost), continue so productions can run again.
+          </p>
+          <Button className="mt-3" variant="primary" loading={release.pending} onClick={() => void release.run()}>
+            It&apos;s inserted (or lost) — continue
+          </Button>
+          <ErrorNotice error={release.error} className="mt-3" />
         </div>
       ) : null}
 

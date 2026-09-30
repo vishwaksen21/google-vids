@@ -382,6 +382,13 @@
    "exact": false,
    "verified_on": "2026-09-30",
    "notes": "shown in place of the result after Generate once the account's generation limit is reached (observed after 3 generations on account 1); offers 'Try again' / 'Remove' - never clicked"
+  },
+  "generate.insert_new_scene": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Insert in new scene",
+   "verified_on": "2026-09-30",
+   "notes": "shown in a 'Previewing' box when Insert is pressed while the active scene already holds a clip; adds the clip as a new scene after it (observed, account 2)"
   }
  }
 }

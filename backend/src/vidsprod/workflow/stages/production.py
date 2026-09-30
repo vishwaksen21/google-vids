@@ -13,6 +13,7 @@ from vidsprod.agents.final_qa import run_final_qa
 from vidsprod.agents.inspection import SceneBudget, decide_correction, inspect_clip, steering
 from vidsprod.agents.timeline import (
     CAPABILITY_FOR,
+    LOGO_CAPABILITY,
     plan_edits,
     scene_windows,
     verify_locked,
@@ -106,9 +107,12 @@ async def latest_verified_export(ctx: StageContext) -> tuple[Export, Artifact] |
         return export, await session.get(Artifact, export.artifact_id)
 
 
-def _required_capabilities(scene_plan: dict, script: dict, brief: dict) -> list[str]:
+def _required_capabilities(scene_plan: dict, script: dict, brief: dict,
+                           logo: bool = False) -> list[str]:
     caps = ["clip.generate", "clip.capture_frames", "clip.insert", "timeline.read",
             "export.download_mp4"]
+    if logo:  # the uploaded logo, placed top right on each scene
+        caps.append(LOGO_CAPABILITY)
     if script["supers"] or script.get("disclosure_texts"):
         caps.append("timeline.text_overlay")
     if any(x["kind"] == "VOICEOVER" for x in script["lines"]):
@@ -142,7 +146,8 @@ class VidsSessionStage:
         raise_if_wrong(state, ctx.settings)  # each non-ready state → the error the engine acts on
         registry = adapter.capabilities
         needed = _required_capabilities(await ctx.doc("SCENE_PLAN"), await ctx.doc("SCRIPT"),
-                                        await ctx.doc("CAMPAIGN_BRIEF"))
+                                        await ctx.doc("CAMPAIGN_BRIEF"),
+                                        logo=bool((await ctx.brief_input()).get("logo_asset_id")))
         missing = [c for c in needed if not registry.is_verified(c)]
         if missing:
             raise CapabilityUnavailableError(
@@ -688,6 +693,9 @@ class TimelineEditsStage:
             ops = (await session.execute(select(TimelineOperation).where(
                 TimelineOperation.job_id == ctx.job_id).order_by(TimelineOperation.seq))).scalars().all()
         if not ops:
+            if await ctx.doc("TIMELINE_PLAN") is not None:  # planned, and nothing to edit (no text, no logo)
+                return StageOutcome.done([passed("timeline.edits", C.OPERATIONAL, "no edits were needed")],
+                                         {"verified": 0, "total": 0})
             return await self._plan(ctx, project_)
         pending = next((o for o in ops if o.status == "PENDING"), None)
         await ctx.progress(ops_total=len(ops),
@@ -743,14 +751,16 @@ class TimelineEditsStage:
     async def _plan(self, ctx: StageContext, project_: ProjectHandle) -> StageOutcome:
         adapter = ctx.s.adapter
         state = await adapter.read_timeline(project_)
+        logo_id = (await ctx.brief_input()).get("logo_asset_id")
+        logo_path = str((await self._asset_paths(ctx, [logo_id]))[0]) if logo_id else None
         ops = plan_edits(scene_plan=await ctx.doc("SCENE_PLAN"), script=await ctx.doc("SCRIPT"),
                          brief=await ctx.doc("CAMPAIGN_BRIEF"),
                          profile={"logo_position": (await ctx.brand_profile()).logo_position},
-                         state=state, settings=ctx.settings)
+                         state=state, settings=ctx.settings, logo_path=logo_path)
         results: list[RuleResult] = []
         async with ctx.s.db.transaction() as session:
             for op in ops:
-                cap = CAPABILITY_FOR[TimelineOpKind(op["kind"])]
+                cap = op.get("capability") or CAPABILITY_FOR[TimelineOpKind(op["kind"])]
                 status = "PENDING"
                 if not adapter.capabilities.is_verified(cap):
                     status = "SKIPPED"
@@ -766,6 +776,17 @@ class TimelineEditsStage:
         await ctx.save_doc("TIMELINE_PLAN", {"operations": ops})
         results.append(passed("timeline.plan", C.CONTENT, f"{len(ops)} edits planned"))
         return StageOutcome.proceed(f"{len(ops)} edits planned", results)
+
+
+    async def _asset_paths(self, ctx, asset_ids: list[str]) -> list[Path]:
+        paths = []
+        async with ctx.s.db.session() as session:
+            for asset_id in asset_ids:
+                artifact = await session.get(Artifact, uuid.UUID(asset_id))
+                if artifact is None:
+                    raise VidsError(f"uploaded image {asset_id} no longer exists")
+                paths.append(ctx.s.store.resolve(artifact.uri))
+        return paths
 
 
 class PreviewStage:

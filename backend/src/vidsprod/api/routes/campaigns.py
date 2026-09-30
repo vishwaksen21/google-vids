@@ -66,7 +66,7 @@ async def _campaign_out(session, campaign: Campaign) -> CampaignOut:
 
 
 async def _check_references(session, brief: BriefInput) -> None:
-    for asset_id in brief.reference_asset_ids:
+    for asset_id in [*brief.reference_asset_ids, *([brief.logo_asset_id] if brief.logo_asset_id else [])]:
         try:
             artifact = await session.get(Artifact, uuid.UUID(asset_id))
         except ValueError:
