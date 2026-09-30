@@ -1,0 +1,200 @@
+<!doctype html>
+<!-- Synthetic harness modelled on the Vids structure observed 2026-09-29 (AI video panel,
+     collapsed composer, contenteditable prompt, settings popup with a duration range and
+     aspect radios, settings label as read-back, result <video> with Insert, which fills the selected blank scene (observed 2026-09-30)). NOT Google Vids. -->
+<html lang="en"><head><title>Vids-like harness (test fixture)</title></head>
+<body>
+<header>
+  <div role="menubar"><div role="menuitem" tabindex="0" onclick="document.getElementById('fileMenu').hidden = false">File</div>
+    <div role="menuitem" tabindex="0" onclick="document.getElementById('insertMenu').hidden = false">Insert</div>
+    <div role="menuitem" tabindex="0" onclick="document.getElementById('formatMenu').hidden = false">Format</div></div>
+  <div role="menu" id="insertMenu" hidden><div role="menuitem" onclick="this.parentNode.hidden = true; document.getElementById('fileIn').click()">Upload</div></div>
+  <div role="menu" id="formatMenu" hidden><div role="menuitem" onclick="this.parentNode.hidden = true; openFormat()">Format options</div></div>
+  <input type="file" id="fileIn" accept="image/*" hidden onchange="uploaded(this)">
+  <aside id="formatPanel" hidden>
+    <div role="button" aria-expanded="false" onclick="toggleSec(this, 'sizeSec')">Size and rotation</div>
+    <div id="sizeSec" hidden><input aria-label="Width, measured in pixels." data-k="w" onchange="applyGeo(this)">
+      <input aria-label="Height, measured in pixels." data-k="h" onchange="applyGeo(this)"></div>
+    <div role="button" aria-expanded="false" onclick="toggleSec(this, 'posSec')">Position</div>
+    <div id="posSec" hidden><input aria-label="X-position, measured in pixels." data-k="x" onchange="applyGeo(this)">
+      <input aria-label="Y-position, measured in pixels." data-k="y" onchange="applyGeo(this)"></div>
+  </aside>
+  <div role="menu" id="fileMenu" hidden><div role="menuitem" onclick="document.getElementById('dlMenu').hidden = false">Download</div></div>
+  <div role="menu" id="dlMenu" hidden><div role="menuitem" onclick="var a = document.createElement('a'); a.href = 'clip6.mp4';
+      a.download = 'Harness Vid.mp4'; document.body.appendChild(a); a.click();">MP4 video (.mp4)</div></div>
+  <button aria-label="Google Account: Vids Tester (vids.tester@example.com)">V</button></header>
+<main>
+  <button id="aiBtn" aria-label="Generate an AI video clip" aria-disabled="false" onclick="document.getElementById('panel').hidden=false">AI</button>
+  <button id="newSceneButton" aria-label="New scene (Ctrl+M)" onclick="window.__toolbarNewScene = true; newScene()">+</button>
+  <aside id="panel" hidden>
+    <h2>AI video clip</h2>
+    <div role="tablist"><div role="tab" aria-selected="true" tabindex="0">Create</div><div role="tab" tabindex="-1">Edit</div></div>
+    <button id="expand" onclick="document.getElementById('composer').hidden=false; this.remove()">Expand</button>
+    <div id="composer" hidden>
+      <div id="ingredients"></div>
+      <button id="ingBtn" onclick="document.getElementById('ingIn').click()">Ingredients</button>
+      <input type="file" id="ingIn" accept="image/*" hidden onchange="attach(this)">
+      <div role="textbox" contenteditable="true" tabindex="0" enterkeyhint="send" aria-label="Describe your video."></div>
+      <button id="settings" aria-label="Generation settings: Omni, 720p, Landscape, 10 seconds"
+              onclick="document.getElementById('pop').hidden=false">Omni</button>
+      <div id="pop" hidden>
+        <div role="radiogroup" aria-label="Aspect ratio">
+          <div role="radio" aria-checked="true" tabindex="0" onclick="aspect('Landscape')">Landscape</div>
+          <div role="radio" aria-checked="false" tabindex="-1" onclick="aspect('Portrait')">Portrait</div>
+        </div>
+        <input type="range" aria-label="Video duration" min="3" max="10" step="1" value="10"
+               oninput="dur(this.value)" onchange="dur(this.value)">
+      </div>
+      <button onclick="submitGen()">Generate</button>
+    </div>
+    <div id="results"></div>
+  </aside>
+  <div id="canvas"></div>
+  <svg id="textLayer" width="600" height="120"></svg>
+  <button aria-label="Insert text" onclick="var p = document.getElementById('textPanel'); p.hidden = !p.hidden">T</button>
+  <div id="textPanel" hidden><div onclick="addTitle()">Add a title</div><div onclick="addBody()">Add body text</div></div>
+  <div id="emptyScene" class="appsFlixPluginsNewSceneButton" role="button" aria-label="New scene (Ctrl+M)"
+       onclick="scenes.push({seconds: 5, video: false}); active = 0; render()">Click to add a new scene</div>
+  <section aria-label="Timeline"><div id="timeline"></div>
+    <div><span class="appsFlixTimelinePlayTimeDuration" id="total">00:00.0</span></div>
+    <div role="button" class="docs-material-button-flat-default docs-material-button" aria-label="New scene (Ctrl+M)"
+         onclick="newScene()">+</div></section>
+</main>
+<script>
+  var state = {aspect: 'Landscape', seconds: 10}; window.__generated = 0; window.__submitted = 0;
+  function label(){ document.getElementById('settings').setAttribute('aria-label',
+    'Generation settings: Omni, 720p, ' + state.aspect + ', ' + state.seconds + ' seconds'); }
+  function aspect(a){ state.aspect = a; label(); }
+  function dur(v){ state.seconds = v; label(); }
+  // Body text: two <text> words 'Body' 'text'; a triple-click selects the paragraph; typing
+  // replaces it and the words are drawn one <text> each (as observed).
+  var bodyBuf = null;
+  function addBody(){ var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('id', 'editor-body' + (boxes++) + '-paragraph-0'); g.dataset.scene = String(active); drawWords(g, 'Body text');
+    g.addEventListener('click', function(e){ if (e.detail === 3 && !noSelect) { editing = g; selected = true; bodyBuf = ''; showSel(true); } });
+    document.getElementById('textLayer').appendChild(g); }
+  function drawWords(g, str){ g.innerHTML = ''; str.split(' ').forEach(function(w, i){ if (!w) return;
+    var t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.setAttribute('x', 10 + 60 * i); t.setAttribute('y', 100);
+    t.textContent = w; g.appendChild(t); }); }
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') document.getElementById('pop').hidden = true; });
+  function submitGen(){ window.__submitted++; setTimeout(function(){ window.__generated++;
+    var v = document.createElement('video'); v.src = 'clip6.mp4'; v.preload = 'auto'; v.muted = true; v.setAttribute('aria-label', 'Generated video: clip ' + window.__generated + ', 720p, ' + state.seconds + ' seconds');
+    v.width = 320; v.height = 180; document.getElementById('results').appendChild(v);
+    var b = document.createElement('button'); b.textContent = 'Insert'; b.onclick = function(){ insertClip(v.duration); };
+    document.getElementById('results').appendChild(b); }, 300); }
+  // Timeline modelled on the observed editor (2026-09-30): a thumbnail group per scene with
+  // 'Scene N of M' and a duration label; the active scene has an 'active' border class; only
+  // the active scene's canvas video is visible; 'New scene' adds a blank 5 s scene after the
+  // active one and makes it active; Insert fills the active scene, which takes the clip's
+  // length. ?state=empty | clip | clip_then_blank sets the starting timeline.
+  window.__inserted = 0; window.__newScenes = 0;
+  var start = new URLSearchParams(location.search).get('state');
+  var scenes = {empty: [], clip: [{seconds: 6, video: true}],
+                clip_then_blank: [{seconds: 6, video: true}, {seconds: 5, video: false}]}[start]
+               || [{seconds: 5, video: false}];
+  var active = scenes.length ? 0 : -1;
+  function fmt(t){ var m = Math.floor(t / 60); return String(m).padStart(2, '0') + ':' + (t - m * 60).toFixed(1).padStart(4, '0'); }
+  function render(){
+    var tl = document.getElementById('timeline'); tl.innerHTML = '';
+    scenes.forEach(function(sc, i){
+      var g = document.createElement('div'); g.className = 'punch-filmstrip-thumbnail';
+      var r = document.createElement('div'); r.setAttribute('role', 'button');
+      r.setAttribute('aria-label', 'Scene\u00a0' + (i + 1) + ' of\u00a0' + scenes.length);
+      r.className = 'appsFlixTimelineSceneItemBorder' + (i === active ? ' appsFlixTimelineSceneItemActiveOuterBorder' : '');
+      r.textContent = 'scene ' + (i + 1); r.onclick = function(){ active = i; render(); };
+      var d = document.createElement('span'); d.className = 'appsFlixTimelineSceneDurationLabelText'; d.textContent = sc.seconds.toFixed(1);
+      g.appendChild(r); g.appendChild(d); tl.appendChild(g);
+    });
+    document.getElementById('total').textContent = fmt(scenes.reduce(function(a, sc){ return a + sc.seconds; }, 0));
+    var cv = document.getElementById('canvas'); cv.innerHTML = '';
+    scenes.forEach(function(sc, i){ if (sc.video) { var v = sc.el || (sc.el = document.createElement('video')); v.src = 'clip6.mp4'; v.muted = true;
+      v.style.width = sc.el.__geo && sc.el.__geo.w < 1500 ? '400px' : '1000px';
+      v.style.display = i === active ? '' : 'none'; cv.appendChild(v); } });
+    document.getElementById('emptyScene').style.display = scenes.length ? 'none' : '';
+    // only the active scene's boxes show on the canvas (others stay in the DOM, hidden)
+    document.querySelectorAll('#textLayer g[data-scene]').forEach(function(g){ g.style.display = g.dataset.scene === String(active) ? '' : 'none'; });
+    document.getElementById('aiBtn').setAttribute('aria-disabled', scenes.length ? 'false' : 'true');
+  }
+  function newScene(){ window.__newScenes++; scenes.splice(active + 1, 0, {seconds: 5, video: false}); active += 1; render(); }
+  function insertClip(sec){ window.__inserted++; scenes[active].seconds = Math.round(sec * 10) / 10; scenes[active].video = true; render(); }
+  // Text boxes as observed: 'Add a title' adds a box reading 'Title'; double-clicking the
+  // word selects it (a selection overlay appears, the toolbar shows Bold); typing replaces the
+  // selection. ?text=elsewhere draws the highlight away from the word. Keys sent while no text is selected are counted as stray (in Vids they reach
+  // the timeline: End/Shift+Home selected scenes, Backspace deleted them).
+  // ?text=noselect: double-click does not select (the adapter must not type).
+  window.__strayKeys = 0; var editing = null, selected = false, boxes = 0;
+  var textMode = new URLSearchParams(location.search).get('text');
+  var noSelect = textMode === 'noselect';
+  function addTitle(){ var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('id', 'editor-box' + (boxes++) + '-paragraph-0'); g.dataset.scene = String(active);
+    var t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.setAttribute('x', 10 + 150 * (boxes - 1)); t.setAttribute('y', 60);
+    t.textContent = 'Title'; t.addEventListener('dblclick', function(){ if (noSelect) return; editing = t; selected = true; showSel(true); });
+    g.appendChild(t); document.getElementById('textLayer').appendChild(g); }
+  function showSel(on){  // the highlight is drawn over the selected word, as in Vids
+    document.querySelectorAll('.sketchy-text-selection-overlay').forEach(function(r){ r.remove(); });
+    if (on && editing) { var b = editing.getBBox(); if (textMode === 'elsewhere') b = {x: 400, y: 5, width: 50, height: 20}; var r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('class', 'sketchy-text-selection-overlay'); r.setAttribute('x', b.x); r.setAttribute('y', b.y);
+      r.setAttribute('width', b.width); r.setAttribute('height', b.height); r.setAttribute('fill', 'rgba(0,0,255,.3)');
+      r.setAttribute('pointer-events', 'none'); document.getElementById('textLayer').appendChild(r); } }
+  // Body text: two <text> words 'Body' 'text'; a triple-click selects the paragraph; typing
+  // replaces it and the words are drawn one <text> each (as observed).
+  var bodyBuf = null;
+  function addBody(){ var g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('id', 'editor-body' + (boxes++) + '-paragraph-0'); g.dataset.scene = String(active); drawWords(g, 'Body text');
+    g.addEventListener('click', function(e){ if (e.detail === 3 && !noSelect) { editing = g; selected = true; bodyBuf = ''; showSel(true); } });
+    document.getElementById('textLayer').appendChild(g); }
+  function drawWords(g, str){ g.innerHTML = ''; str.split(' ').forEach(function(w, i){ if (!w) return;
+    var t = document.createElementNS('http://www.w3.org/2000/svg', 'text'); t.setAttribute('x', 10 + 60 * i); t.setAttribute('y', 100);
+    t.textContent = w; g.appendChild(t); }); }
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { editing = null; selected = false; showSel(false); return; }
+    if (e.key.length !== 1) { if (!editing) window.__strayKeys++; return; }
+    if (!editing) { window.__strayKeys++; return; }
+    if (editing.tagName === 'g') { bodyBuf = (selected ? '' : bodyBuf) + e.key; selected = false; showSel(false);
+      drawWords(editing, bodyBuf.charAt(0).toUpperCase() + bodyBuf.slice(1)); e.preventDefault(); return; }
+    var cur = selected ? '' : editing.textContent; selected = false; showSel(false);
+    var next = cur + e.key; editing.textContent = next.charAt(0).toUpperCase() + next.slice(1); e.preventDefault(); });
+  // Layout as observed: an uploaded image is drawn fit to height (1016 px for a square) at
+  // (32, 32) and selected; Format options edits the SELECTED object in 1920x1080 pixels;
+  // a text box's height reflows with its width; clicking the canvas video selects it.
+  // ?format=ignore: the panel does not apply values (the adapter must notice).
+  var selectedObj = null, imgs = 0, ignoreFormat = new URLSearchParams(location.search).get('format') === 'ignore';
+  function uploaded(input){ var g = document.createElementNS('http://www.w3.org/2000/svg', 'g'); g.setAttribute('id', 'editor-img' + (imgs++));
+    var im = document.createElementNS('http://www.w3.org/2000/svg', 'image'); im.setAttribute('width', 60); im.setAttribute('height', 60);
+    im.setAttribute('href', URL.createObjectURL(input.files[0])); g.appendChild(im); g.__geo = {w: 1016, h: 1016, x: 32, y: 32};
+    g.dataset.scene = String(active);
+    document.getElementById('textLayer').appendChild(g); selectedObj = g; input.value = ''; }
+  function openFormat(){ document.getElementById('formatPanel').hidden = false; fillFormat(); }
+  function fillFormat(){ var geo = selectedObj && selectedObj.__geo; if (!geo) return;
+    document.querySelectorAll('#formatPanel input').forEach(function(i){ i.value = String(geo[i.dataset.k]); }); }
+  function toggleSec(btn, id){ var sec = document.getElementById(id); sec.hidden = !sec.hidden; btn.setAttribute('aria-expanded', String(!sec.hidden)); }
+  function applyGeo(input){  // on a rejected value the fields redraw from the object (as in Vids)
+    if (!selectedObj) return;
+    if (ignoreFormat) { fillFormat(); return; }
+    var geo = selectedObj.__geo, k = input.dataset.k;
+    geo[k] = parseFloat(input.value);
+    if (k === 'w' && selectedObj.__text) geo.h = Math.round(103.4 * Math.ceil(1189.4 / geo.w) * 10) / 10;
+    fillFormat(); }
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && editing) {
+      var box = editing.tagName === 'g' ? editing : editing.parentNode; box.__text = true;
+      box.__geo = box.__geo || {w: 1189.4, h: 103.4, x: 365.5, y: 470.6}; selectedObj = box; } }, true);
+  document.getElementById('canvas').addEventListener('click', function(e){ if (e.target.tagName === 'VIDEO') {
+      e.target.__geo = e.target.__geo || {w: 1920, h: 1080, x: 0, y: 0}; selectedObj = e.target; } });
+  window.__boxCount = function(){ return document.querySelectorAll('#textLayer g[id*="-paragraph-"]').length; };
+  // Ingredients as observed: a file chooser; each attached image shows 'Remove image'; the
+  // button then reads 'Add avatar or ingredients'. Hazard modelled: Backspace in an EMPTY
+  // prompt removes the last attached image (as chat-style composers do).
+  window.__attached = [];
+  function attach(input){ var f = input.files[0]; window.__attached.push(f.name); var b = document.createElement('button');
+    b.textContent = 'Remove image'; b.onclick = function(){ b.remove(); window.__attached.pop(); };
+    document.getElementById('ingredients').appendChild(b); document.getElementById('ingBtn').textContent = 'Add avatar or ingredients';
+    var box = document.querySelector('#composer [role=textbox]'); box.setAttribute('aria-label', 'Specify how you want to use the ingredients.');
+    var chip = document.createElement('span'); chip.contentEditable = 'false'; chip.className = 'chip'; chip.textContent = 'Image' + window.__attached.length;
+    box.appendChild(document.createTextNode('\u200b')); box.appendChild(chip); box.appendChild(document.createTextNode('\u200b'));
+    input.value = ''; }
+  document.querySelector('[role=textbox]').addEventListener('keydown', function(e){
+    if (e.key === 'Backspace' && !this.innerText.trim() && window.__attached.length) {
+      var chips = document.querySelectorAll('#ingredients button'); chips[chips.length - 1].remove(); window.__attached.pop(); } });
+  render();
+</script>
+</body></html>

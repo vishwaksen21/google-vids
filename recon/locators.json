@@ -1,0 +1,387 @@
+{
+ "ui_fingerprint": "bbad0b2ed0e27906",
+ "fingerprint_landmarks": [
+  "home.main_menu",
+  "home.search",
+  "home.start_heading",
+  "home.account"
+ ],
+ "locators": {
+  "home.main_menu": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Main menu",
+   "verified_on": "2026-09-29"
+  },
+  "home.search": {
+   "strategy": "role",
+   "role": "combobox",
+   "value": "Search bar",
+   "verified_on": "2026-09-29"
+  },
+  "home.start_heading": {
+   "strategy": "role",
+   "role": "heading",
+   "value": "Start a new video",
+   "verified_on": "2026-09-29"
+  },
+  "home.account": {
+   "strategy": "css",
+   "value": "[aria-label^=\"Google Account:\"]",
+   "verified_on": "2026-09-29"
+  },
+  "project.new": {
+   "strategy": "css",
+   "value": "div[role=option].docs-homescreen-templates-templateview:has-text(\"Blank video\")",
+   "verified_on": "2026-09-29",
+   "notes": "The 'Blank video' tile has no accessible name; scoped CSS on its role=option container"
+  },
+  "editor.ready": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Generate an AI video clip",
+   "verified_on": "2026-09-29"
+  },
+  "editor.getting_started_close": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Close",
+   "verified_on": "2026-09-29",
+   "notes": "Shown on a new Vid ('Getting started' dialog); absent afterwards"
+  },
+  "project.title": {
+   "strategy": "label",
+   "value": "Rename",
+   "verified_on": "2026-09-29",
+   "notes": "input.docs-title-input; Enter commits; persists across reload"
+  },
+  "generate.open_panel": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Generate an AI video clip",
+   "verified_on": "2026-09-29",
+   "notes": "aria-disabled='true' in a Vid with no scene (observed); the adapter refuses"
+  },
+  "generate.panel": {
+   "strategy": "role",
+   "role": "heading",
+   "value": "AI video clip",
+   "verified_on": "2026-09-29"
+  },
+  "generate.create": {
+   "strategy": "role",
+   "role": "tab",
+   "value": "Create",
+   "verified_on": "2026-09-29"
+  },
+  "generate.expand": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Expand",
+   "verified_on": "2026-09-29",
+   "notes": "Composer is collapsed until expanded"
+  },
+  "generate.prompt": {
+   "strategy": "css",
+   "value": "[role=textbox][enterkeyhint=send]",
+   "verified_on": "2026-09-30",
+   "notes": "the AI video prompt (contenteditable). Its label changes once an ingredient is attached ('Specify how you want to use the ingredients\u2026') and it then starts with a non-editable 'Image1' chip; type after it. enterkeyhint=send: NEVER press Enter here"
+  },
+  "generate.clear": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Clear",
+   "verified_on": "2026-09-29"
+  },
+  "generate.settings": {
+   "strategy": "css",
+   "value": "[aria-label^=\"Generation settings\"]",
+   "verified_on": "2026-09-29",
+   "notes": "aria-label e.g. 'Generation settings: Omni, 720p, Landscape, 10 sec' (09-30; '6 seconds' on 09-29) is the read-back"
+  },
+  "generate.duration": {
+   "strategy": "label",
+   "value": "Video duration",
+   "verified_on": "2026-09-29",
+   "notes": "input[type=range] min 3 max 10 step 1"
+  },
+  "generate.aspect.16:9": {
+   "strategy": "role",
+   "role": "radio",
+   "value": "Landscape",
+   "verified_on": "2026-09-29"
+  },
+  "generate.aspect.9:16": {
+   "strategy": "role",
+   "role": "radio",
+   "value": "Portrait",
+   "verified_on": "2026-09-29"
+  },
+  "generate.ingredients": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Ingredients",
+   "verified_on": "2026-09-29",
+   "notes": "opens a native file chooser (observed 2026-09-30, neutral test image, nothing submitted)"
+  },
+  "generate.submit": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Generate",
+   "verified_on": "2026-09-29",
+   "notes": "natively disabled with an empty prompt (observed; the adapter refuses before clicking); enabled with text, no client-side prompt limit seen up to 4559 characters. The panel's inspiration gallery has 'Recreate inspiration gallery item N' buttons: never clicked (they may generate)"
+  },
+  "timeline.scene": {
+   "strategy": "css",
+   "value": "[aria-label^=\"Scene\"]",
+   "verified_on": "2026-09-29",
+   "notes": "aria-label 'Scene 1 of 1' (non-breaking spaces)"
+  },
+  "menu.file": {
+   "strategy": "role",
+   "role": "menuitem",
+   "value": "File",
+   "verified_on": "2026-09-29"
+  },
+  "menu.file.download": {
+   "strategy": "css",
+   "value": "[role=menu] [role=menuitem]:visible:has-text(\"Download\")",
+   "verified_on": "2026-09-29"
+  },
+  "menu.file.download_mp4": {
+   "strategy": "css",
+   "value": "[role=menu] [role=menuitem]:visible:has-text(\"MP4 video (.mp4)\")",
+   "verified_on": "2026-09-29",
+   "notes": "Located only; download not performed (needs a generated video)"
+  },
+  "generate.in_progress": {
+   "strategy": "text",
+   "value": "Bringing your vision to life",
+   "exact": false,
+   "verified_on": "2026-09-29",
+   "notes": "shown with a percentage while generating (observed ~60 s for 6 s)"
+  },
+  "generate.ready": {
+   "strategy": "text",
+   "value": "Your generated video is ready for preview",
+   "exact": false,
+   "verified_on": "2026-09-29"
+  },
+  "generate.result": {
+   "strategy": "css",
+   "value": "video[aria-label^=\"Generated video:\"]",
+   "verified_on": "2026-09-29",
+   "notes": "aria-label 'Generated video: <prompt>, 720p, 6 seconds'; 1280x720, 6.016 s observed. Exists only in the open page until inserted"
+  },
+  "generate.result.insert": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Insert",
+   "verified_on": "2026-09-29",
+   "notes": "'\u2190 Insert' under the result. Observed 2026-09-30: fills the SELECTED blank scene (1 scene 5.0 s \u2192 1 scene 6.0 s); does not append a scene"
+  },
+  "generate.cancel": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Cancel",
+   "verified_on": "2026-09-29",
+   "notes": "present during generation"
+  },
+  "text.insert": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Insert text",
+   "verified_on": "2026-09-29"
+  },
+  "text.add_title": {
+   "strategy": "text",
+   "value": "Add a title",
+   "verified_on": "2026-09-29",
+   "notes": "adds a box reading 'Title' to the ACTIVE scene; it persists"
+  },
+  "captions.open": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Captions",
+   "verified_on": "2026-09-30",
+   "notes": "panel: 'Apply to' radios All scenes / Current scene, ~30 style presets, More \u2192 Edit transcript / Delete all captions (never clicked)"
+  },
+  "timeline.duration": {
+   "strategy": "css",
+   "value": ".appsFlixTimelinePlayTimeDuration",
+   "verified_on": "2026-09-30",
+   "notes": "total length as mm:ss.f; parent aria 'X seconds out of Y seconds.'. Empty Vid 00:00.0; one blank scene 00:05.0 (observed)"
+  },
+  "timeline.new_scene": {
+   "strategy": "css",
+   "value": ".docs-material-button[aria-label=\"New scene (Ctrl+M)\"]",
+   "verified_on": "2026-09-30",
+   "notes": "the '+' at the right of the timeline (as the user directs): adds a blank 5.0 s scene AFTER the active one and makes it active. The toolbar #newSceneButton does the same"
+  },
+  "canvas.video": {
+   "strategy": "css",
+   "value": "video:not([aria-label]):visible",
+   "verified_on": "2026-09-30",
+   "notes": "the ACTIVE scene's clip; other scenes' videos stay in the DOM hidden (0 px). The AI panel result is 'Generated video: \u2026'"
+  },
+  "timeline.scene_group": {
+   "strategy": "css",
+   "value": ".punch-filmstrip-thumbnail:has([aria-label^=\"Scene\"])",
+   "verified_on": "2026-09-30",
+   "notes": "one per scene: the scene button, its page number and its duration label"
+  },
+  "timeline.scene_duration": {
+   "strategy": "css",
+   "value": ".appsFlixTimelineSceneDurationLabelText",
+   "verified_on": "2026-09-30",
+   "notes": "seconds with one decimal ('5.0' blank, '6.0' for the 6.016 s clip); in the DOM with timing shown or hidden"
+  },
+  "timeline.scene_active": {
+   "strategy": "css",
+   "value": "[aria-label^=\"Scene\"].appsFlixTimelineSceneItemActiveOuterBorder",
+   "verified_on": "2026-09-30",
+   "notes": "the active scene's rect; clicking a scene makes it active; not saved (reopen = scene 1)"
+  },
+  "timeline.new_scene_empty": {
+   "strategy": "css",
+   "value": ".appsFlixPluginsNewSceneButton",
+   "verified_on": "2026-09-30",
+   "notes": "the canvas 'Click to add a new scene' control of a Vid with no scene (0 px wide otherwise)"
+  },
+  "text.canvas_text": {
+   "strategy": "css",
+   "value": "g[id^=\"editor-\"][id*=\"-paragraph-\"] text:visible",
+   "verified_on": "2026-09-30",
+   "notes": "text on the canvas only (the filmstrip copies are g#filmstrip-\u2026); one <text> per word/line; an invisible hit-area path overlays it, so clicks are forced; other scenes' text stays in the DOM hidden after visiting them, so only :visible text is the active scene's"
+  },
+  "text.selection": {
+   "strategy": "css",
+   "value": "rect.sketchy-text-selection-overlay:visible",
+   "verified_on": "2026-09-30",
+   "notes": "the highlight drawn over selected text (after double-clicking the word); the adapter requires it to overlap the word"
+  },
+  "text.format_bold": {
+   "strategy": "css",
+   "value": "[role=button][aria-label^=\"Bold (\"]:visible",
+   "verified_on": "2026-09-30",
+   "notes": "NOT a signal: with the Text side panel open the text buttons overflow into '\u22ee'"
+  },
+  "captions.apply_all": {
+   "strategy": "role",
+   "role": "radio",
+   "value": "All scenes",
+   "verified_on": "2026-09-30"
+  },
+  "captions.style_first": {
+   "strategy": "css",
+   "value": ".docsWizSidebarSidebarContainer button[aria-label^=\"Bold white text with a purple emphasis\"]",
+   "verified_on": "2026-09-30",
+   "notes": "selecting a style marks it pressed; captions are generated from spoken audio only"
+  },
+  "captions.no_speech": {
+   "strategy": "text",
+   "value": "Add media with spoken audio to generate captions",
+   "exact": false,
+   "verified_on": "2026-09-30",
+   "notes": "banner shown after choosing a style in a Vid without spoken audio"
+  },
+  "timeline.new_scene_toolbar": {
+   "strategy": "css",
+   "value": "#newSceneButton",
+   "verified_on": "2026-09-30",
+   "notes": "toolbar equivalent of the timeline '+'"
+  },
+  "text.add_body": {
+   "strategy": "text",
+   "value": "Add body text",
+   "verified_on": "2026-09-30",
+   "notes": "adds a centred box reading 'Body text' (two <text> words) to the ACTIVE scene; triple-click selects both; typed text wraps; punctuation types as is"
+  },
+  "menu.insert": {
+   "strategy": "role",
+   "role": "menuitem",
+   "value": "Insert",
+   "verified_on": "2026-09-30"
+  },
+  "menu.insert.upload": {
+   "strategy": "css",
+   "value": "[role=menu] [role=menuitem]:visible:has-text(\"Upload\")",
+   "notes": "opens a native file chooser (intercepted)",
+   "verified_on": "2026-09-30"
+  },
+  "canvas.image": {
+   "strategy": "css",
+   "value": "g[id^=\"editor-\"] image:visible",
+   "notes": "images on the ACTIVE scene's canvas (blob: href); filmstrip copies are under g#filmstrip-\u2026",
+   "verified_on": "2026-09-30"
+  },
+  "menu.format": {
+   "strategy": "role",
+   "role": "menuitem",
+   "value": "Format",
+   "verified_on": "2026-09-30"
+  },
+  "menu.format.options": {
+   "strategy": "css",
+   "value": "[role=menu] [role=menuitem]:visible:has-text(\"Format options\")",
+   "verified_on": "2026-09-30"
+  },
+  "format.size_section": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Rotation",
+   "exact": false,
+   "verified_on": "2026-09-30",
+   "notes": "'Size and rotation' (account 1) / 'Size & Rotation' (account 2), matched on 'Rotation'"
+  },
+  "format.position_section": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Position",
+   "notes": "aria-expanded",
+   "verified_on": "2026-09-30"
+  },
+  "format.width": {
+   "strategy": "css",
+   "value": "input[aria-label^=\"Width, measured in pixels\"]",
+   "verified_on": "2026-09-30"
+  },
+  "format.height": {
+   "strategy": "css",
+   "value": "input[aria-label^=\"Height, measured in pixels\"]",
+   "verified_on": "2026-09-30"
+  },
+  "format.x": {
+   "strategy": "css",
+   "value": "input[aria-label^=\"X-position, measured in pixels\"], input[aria-label^=\"X position, measured in pixels\"]",
+   "notes": "'X-position, \u2026' (account 1) / 'X position, \u2026' (account 2); from top left; canvas 1920x1080; fill then Tab commits",
+   "verified_on": "2026-09-30"
+  },
+  "format.y": {
+   "strategy": "css",
+   "value": "input[aria-label^=\"Y-position, measured in pixels\"], input[aria-label^=\"Y position, measured in pixels\"]",
+   "verified_on": "2026-09-30"
+  },
+  "generate.ingredients_more": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Add avatar or ingredients",
+   "verified_on": "2026-09-30",
+   "notes": "replaces 'Ingredients' once an image is attached"
+  },
+  "generate.ingredient_remove": {
+   "strategy": "role",
+   "role": "button",
+   "value": "Remove image",
+   "verified_on": "2026-09-30",
+   "notes": "one per attached ingredient image: the attachment read-back"
+  },
+  "generate.quota": {
+   "strategy": "text",
+   "value": "You've hit your limits for generating videos in Vids",
+   "exact": false,
+   "verified_on": "2026-09-30",
+   "notes": "shown in place of the result after Generate once the account's generation limit is reached (observed after 3 generations on account 1); offers 'Try again' / 'Remove' - never clicked"
+  }
+ }
+}

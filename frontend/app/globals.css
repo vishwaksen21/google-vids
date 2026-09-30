@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/*
+ * Prudential design tokens (../../DESIGN.md). The default Tailwind palette is removed so
+ * no unrelated hue (blue, green, purple…) can be used by accident. Every colour below is
+ * Prudential Red #E71D2D, Prudential Gray #666D71, White, or a shade derived from them.
+ */
+@theme {
+  --color-*: initial;
+  --color-white: #ffffff;
+  --color-transparent: transparent;
+  --color-current: currentColor;
+
+  --color-red: #e71d2d; /* Prudential Red: CTA, active, live */
+  --color-red-dark: #b5121f; /* hover / text on light red */
+  --color-red-deep: #8a0d17; /* high-contrast text on red-50 */
+  --color-red-200: #f3b2b8;
+  --color-red-100: #fadcdf;
+  --color-red-50: #fdf2f3;
+
+  --color-ink: #303538; /* darkest derived gray: headings, body */
+  --color-gray-700: #4a5054;
+  --color-gray: #666d71; /* Prudential Gray: secondary text, icons */
+  --color-gray-400: #969ca0; /* decorative only (below AA for text) */
+  --color-gray-300: #c3c7c9;
+  --color-gray-200: #dcdfe0;
+  --color-gray-100: #ebedee;
+  --color-gray-50: #f6f7f7;
+
+  --font-sans: var(--font-inter), Inter, "Helvetica Neue", Helvetica, Arial, sans-serif;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+
+  --shadow-soft: 0 1px 2px rgb(48 53 56 / 0.04), 0 8px 24px -12px rgb(48 53 56 / 0.08);
+  --shadow-dialog: 0 24px 64px -24px rgb(48 53 56 / 0.28);
+}
+
+@layer base {
+  html {
+    color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--color-white);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-red);
+    outline-offset: 2px;
+  }
+  ::selection {
+    background: var(--color-red-100);
+    color: var(--color-ink);
+  }
+  input[type="checkbox"],
+  input[type="radio"] {
+    accent-color: var(--color-red);
+  }
+  dialog::backdrop {
+    background: rgb(48 53 56 / 0.45);
+  }
+  summary {
+    cursor: pointer;
+  }
+  code,
+  kbd,
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@utility visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* The live-stage tally: a slow breathing dot. Off for people who prefer reduced motion. */
+@keyframes tally {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+@utility animate-tally {
+  animation: tally 1.6s ease-in-out infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@utility animate-spin {
+  animation: spin 0.9s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

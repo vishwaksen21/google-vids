@@ -1,0 +1,246 @@
+{
+ "capabilities": [
+  {
+   "key": "session.check",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/verify/session_1790708330395.png",
+    "recon/2026-09-30/verify/1790708348879_S01_configured.png",
+    "recon/2026-09-30/verify/1790708340821_project_created.png",
+    "recon/2026-09-30/verify/1790708355714_text_overlay.png"
+   ],
+   "notes": "{}"
+  },
+  {
+   "key": "project.create",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/verify/1790708348879_S01_configured.png",
+    "recon/2026-09-30/verify/1790708340821_project_created.png",
+    "recon/2026-09-30/verify/1790708355714_text_overlay.png"
+   ],
+   "notes": "{\"project\": {\"project_id\": \"1J85-IzONvQquMGkb6po3aOupOqRgpqIHxdj3p4hCDz4\", \"title\": \"[vidsprod] recon verify 2026-09-30\", \"url\": \"https://docs.google.com/videos/d/1J85-IzONvQquMGkb6po3aOupOqRgpqIHxdj3p4hCDz4/edit\", \"created_by_us\": true, \"simulated\": false}}"
+  },
+  {
+   "key": "project.open",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/verify/1790708348879_S01_configured.png",
+    "recon/2026-09-30/verify/1790708340821_project_created.png",
+    "recon/2026-09-30/verify/1790708355714_text_overlay.png"
+   ],
+   "notes": "{\"project\": \"1J85-IzONvQquMGkb6po3aOupOqRgpqIHxdj3p4hCDz4\"}"
+  },
+  {
+   "key": "clip.configure",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/verify/1790708348879_S01_configured.png",
+    "recon/2026-09-30/verify/1790708340821_project_created.png",
+    "recon/2026-09-30/verify/1790708355714_text_overlay.png"
+   ],
+   "notes": "{\"settings_label\": \"Generation settings: Omni, 720p, Landscape, 6 seconds\", \"prompt\": \"A calm sunlit family kitchen, slow push in, natural morning light.\"}"
+  },
+  {
+   "key": "export.download_mp4",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/verify/1790708348879_S01_configured.png",
+    "recon/2026-09-30/verify/1790708340821_project_created.png",
+    "recon/2026-09-30/verify/1790708355714_text_overlay.png",
+    "recon/2026-09-30/export_clip/1orOiofdsM8FZ3MAnkIu5D2w0FSB48l5aTW_-1iRLavk-lip-0001.mp4",
+    "recon/2026-09-30/export_clip/report.json",
+    "recon/2026-09-30/export_clip/export_frame_3s.png",
+    "recon/2026-09-30/prudential_draft/12w2Ww9FFBRRVqehstuWdS3tQ7CzYSzGY3WiBkuiR1_M-al_draft.mp4"
+   ],
+   "notes": "Adapter export of the Vid holding the generated clip (1 scene, 6.0 s): 2,735,148 B, H.264 1920x1080 30 fps, 6.06 s, AAC 44.1 kHz, full decode OK, frames show the clip. Earlier: a text-only Vid. Prudential draft (3 scenes, 15 s): H.264 1920x1080 30 fps, 15.03 s, decode OK. Chrome's browser process crashed (crash key LEGACY_DOWNLOAD) during 'Downloading\u2026' on 3 of 5 attempts for that Vid; the adapter now exports in a fresh browser and retries up to 3 times (no Vid change, no quota)."
+  },
+  {
+   "key": "clip.generate",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-29",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-29/generation/watch_0000.png",
+    "recon/2026-09-29/generation/watch_0004.png",
+    "recon/2026-09-29/generation/watch_0008.png",
+    "recon/2026-09-29/generation/watch_0012.png",
+    "recon/2026-09-29/generation/watch_0016.png",
+    "recon/2026-09-29/generation/watch_0060.png",
+    "recon/2026-09-29/generation/watch_0120.png",
+    "recon/2026-09-29/generation/pre_generate.png"
+   ],
+   "params": {
+    "min_seconds": 3,
+    "max_seconds": 10,
+    "step_seconds": 1,
+    "aspect_ratios": [
+     "16:9",
+     "9:16"
+    ],
+    "monthly_quota_typical": 50
+   },
+   "notes": "One real generation (authorised): prompt + settings read back, Generate clicked once, progress 'Bringing your vision to life!' with %, 'Your generated video is ready for preview' after ~60 s, result <video aria-label='Generated video: <prompt>, 720p, 6 seconds'> 1280x720 6.016 s. Run through the recon runner with the adapter's locators. The result is lost on reload unless inserted, so the adapter also requires clip.insert before it will generate. Second authorised generation 2026-09-30: ~28 s to result; requires a scene (the AI video button is aria-disabled in a Vid with no scene). Disabled states observed without quota: AI button aria-disabled with no scene; Generate natively disabled with an empty prompt. Refusal, error and quota-exhausted states have not been observed (not reproducible without spending quota)."
+  },
+  {
+   "key": "clip.insert",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/insert/work/browser/S01/1790719236315_S01_t1_before_generate.png",
+    "recon/2026-09-30/insert/work/browser/S01/1790719295871_mismatch_generate_result_insert.png",
+    "recon/2026-09-30/insert/work/precheck/1790718050216_precheck_project_open.png",
+    "recon/2026-09-30/insert/work/precheck/1790719230145_precheck_project_open.png",
+    "recon/2026-09-30/insert/reopen/1790719465255_reopened.png",
+    "recon/2026-09-30/insert/reopen/1790719579557_reopened.png",
+    "recon/2026-09-30/insert/report.json",
+    "recon/2026-09-30/insert/reopen_report.json"
+   ],
+   "notes": "One real generation 2026-09-30 (~28 s) then '\u2190 Insert' at once. Insert fills the SELECTED blank scene: 1 scene 5.0 s -> 1 scene 6.0 s; canvas <video> 6.016 s 1280x720; unchanged after reopening. It does not append a scene: one blank scene per clip is needed first. 2026-09-30: generate \u2192 prepared blank scene \u2192 Insert \u2192 per-scene read-back passed end to end (5.0 \u2192 10.0 s, canvas 10.005 s)."
+  },
+  {
+   "key": "clip.capture_frames",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/insert/reopen/frames/S01_inserted_frame_00.90.png",
+    "recon/2026-09-30/insert/reopen/frames/S01_inserted_frame_03.01.png",
+    "recon/2026-09-30/insert/reopen/frames/S01_inserted_frame_05.11.png"
+   ],
+   "notes": "adapter's bounded capture (seek 15/50/85%, 30 s cap) on the inserted canvas video, after insertion; timeline unchanged by it"
+  },
+  {
+   "key": "timeline.text_overlay",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/text/verify/1790735644371_text_reopened.png",
+    "recon/2026-09-30/text/verify/browser/text/1790735550078_mismatch_text_selection.png",
+    "recon/2026-09-30/text/verify/browser/text/1790735635989_text_overlay_set.png",
+    "recon/2026-09-30/text/verify/session_1790735536571.png",
+    "recon/2026-09-30/text/verify/session_1790735624410.png",
+    "recon/2026-09-30/text/verify_report.json",
+    "recon/2026-09-30/prudential_draft/report.json",
+    "recon/2026-09-30/prudential_draft/draft_contact.png",
+    "recon/2026-09-30/timeline_ops/report.json"
+   ],
+   "notes": "add_text_overlay(): Insert text \u2192 Add a title \u2192 double-click the canvas word 'Title' (forced: a hit-area path overlays it) \u2192 require the text-selection overlay AND the text-format toolbar \u2192 type printable text only (no Backspace/Delete/Enter) \u2192 canvas read-back; persisted after reopen; scene count unchanged. Default title style only (no formatting). Body text (2026-09-30): 'Add body text' \u2192 triple-click selects the default 'Body text' \u2192 type; long punctuated paragraphs wrap and read back exactly; the Text panel stays open between boxes (the rail button toggles it). Used live for the 3-scene Prudential draft. Timeline op (2026-09-30, account 2): apply_timeline_op TEXT_OVERLAY puts a scene text in the left column and a disclosure as a bottom strip on its scene; per-scene read-back (text boxes grouped per box) matches exactly after reopening; a retry adds nothing."
+  },
+  {
+   "key": "timeline.read",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/scenes/verify/1790735111226_scenes_vid_reopened.png",
+    "recon/2026-09-30/scenes/verify/1790737525938_scenes_vid_reopened.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790735097266_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790735104129_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790737510814_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790737518254_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/session_1790735090920.png",
+    "recon/2026-09-30/scenes/verify/session_1790737504520.png",
+    "recon/2026-09-30/scenes/verify_report.json"
+   ],
+   "notes": "read_timeline(): per-scene durations + total; clip Vid reads [6.0, 5.0] / 11.0 s"
+  },
+  {
+   "key": "timeline.captions",
+   "status": "UNVERIFIED",
+   "source": "observed",
+   "notes": "Captions come from spoken audio only. Observed in the dedicated recon Vid: panel with Apply to (All/Current scene) and style presets; choosing a style shows 'Add media with spoken audio to generate captions'. Verifying the positive path needs speech in a Vid: an AI voiceover (a generation) or an uploaded speech file (new Drive content) - not done without approval."
+  },
+  {
+   "key": "timeline.add_scene",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/scenes/verify/1790735111226_scenes_vid_reopened.png",
+    "recon/2026-09-30/scenes/verify/1790737525938_scenes_vid_reopened.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790735097266_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790735104129_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790737510814_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/browser/scenes/1790737518254_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/scenes/verify/session_1790735090920.png",
+    "recon/2026-09-30/scenes/verify/session_1790737504520.png",
+    "recon/2026-09-30/scenes/verify_report.json"
+   ],
+   "notes": "add_blank_scene(): selects the last scene, reuses it when blank, else 'New scene' appends a blank 5.0 s scene after it (active); persisted after reopening Uses the timeline '+' (re-verified live 2026-09-30, as directed)."
+  },
+  {
+   "key": "quota.read",
+   "status": "UNVERIFIED",
+   "source": "observed",
+   "notes": "no remaining-generations indicator found in the AI video panel (2026-09-30) Quota-exhausted state observed 2026-09-30 (locator generate.quota); still no remaining-count indicator."
+  },
+  {
+   "key": "timeline.image",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/images/verify/1790739892227_layout_reopened.png",
+    "recon/2026-09-30/images/verify/browser/images/1790739873370_image_placed_recon_test_image.png",
+    "recon/2026-09-30/images/verify/browser/scenes/1790739867099_prepare_blank_scene_ready.png",
+    "recon/2026-09-30/images/verify/browser/text/1790739883141_text_overlay_set_body.png",
+    "recon/2026-09-30/images/verify/session_1790739857988.png",
+    "recon/2026-09-30/images/verify_report.json"
+   ],
+   "notes": "insert_image(): Insert \u2192 Upload (file chooser) \u2192 image on the active scene, fit to height at (32,32) \u2192 aligned right and centred via Format options pixel fields (read back); persisted; scene length unchanged. Body text layout (w 780, x 48, centred) set the same way. 'Convert to video' is never clicked."
+  },
+  {
+   "key": "clip.ingredients",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/talking_test/report.json",
+    "recon/2026-09-30/talking_test/talking_contact.png",
+    "recon/2026-09-30/talking_test/1CIx7SpUtp6x9oRErAXhRgECZU_tATFqNNUnlY_ZULnA-t-export.mp4"
+   ],
+   "notes": "Ingredients \u2192 file chooser \u2192 'Remove image' chip + 'Image1' chip at the start of the prompt; prompt typed after it (no '@'); one real generation on account 2 produced a 10 s clip of the person in the photo"
+  },
+  {
+   "key": "clip.generates_speech",
+   "status": "UNVERIFIED",
+   "source": "observed",
+   "notes": "2026-09-30: a prompt with quoted dialogue gave a clip with speech-level audio (AAC, mean -23.7 dB, max -3.4 dB) and moving mouth; the spoken words have not been checked against the script"
+  },
+  {
+   "key": "timeline.layout_video",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/prudential_v1/finish_report.json"
+   ],
+   "notes": "place_scene_video(): select the canvas clip (forced click) \u2192 Format options \u2192 1016x571.5 at (872, 254.2); read back identical after reopening the Vid; scene lengths unchanged (Prudential v1, scene 1)"
+  },
+  {
+   "key": "preview.capture",
+   "status": "VERIFIED",
+   "verified_on": "2026-09-30",
+   "ui_fingerprint": "bbad0b2ed0e27906",
+   "evidence": [
+    "recon/2026-09-30/timeline_ops/preview/1790748774376_preview_scene_1.png",
+    "recon/2026-09-30/timeline_ops/preview/1790748775666_preview_scene_2.png",
+    "recon/2026-09-30/timeline_ops/report.json"
+   ],
+   "notes": "capture_preview(): select each scene, screenshot the editor; one shot per scene tagged with its scene key"
+  }
+ ]
+}
